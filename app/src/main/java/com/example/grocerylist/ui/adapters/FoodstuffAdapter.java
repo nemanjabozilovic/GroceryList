@@ -45,18 +45,30 @@ public class FoodstuffAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        if (convertView == null) {
-            convertView = LayoutInflater.from(context).inflate(R.layout.list_item, parent, false);
-        }
-
-        TextView itemName = convertView.findViewById(R.id.itemName);
-        ImageView copyButton = convertView.findViewById(R.id.copyButton);
-        ImageView deleteButton = convertView.findViewById(R.id.deleteButton);
+        View view = convertView != null ? convertView : LayoutInflater.from(context).inflate(R.layout.list_item, parent, false);
 
         Foodstuff foodstuff = (Foodstuff) getItem(position);
+        setupTextView(view, foodstuff);
+        setupButtons(view, position, foodstuff);
 
+        return view;
+    }
+
+    private void setupTextView(View view, Foodstuff foodstuff) {
+        TextView itemName = view.findViewById(R.id.itemName);
         itemName.setText(foodstuff.Name + ", " + foodstuff.Quantity + " piece/s, " + foodstuff.PricePerPiece + " RSD per piece");
+    }
 
+    private void setupButtons(View view, int position, Foodstuff foodstuff) {
+        ImageView copyButton = view.findViewById(R.id.copyButton);
+        ImageView deleteButton = view.findViewById(R.id.deleteButton);
+
+        setButtonVisibility(copyButton, deleteButton);
+        setCopyButtonListener(copyButton, foodstuff);
+        setDeleteButtonListener(deleteButton, position);
+    }
+
+    private void setButtonVisibility(ImageView copyButton, ImageView deleteButton) {
         if (areButtonsVisible) {
             copyButton.setVisibility(View.VISIBLE);
             deleteButton.setVisibility(View.VISIBLE);
@@ -64,41 +76,30 @@ public class FoodstuffAdapter extends BaseAdapter {
             copyButton.setVisibility(View.GONE);
             deleteButton.setVisibility(View.GONE);
         }
+    }
 
+    private void setCopyButtonListener(ImageView copyButton, Foodstuff foodstuff) {
         copyButton.setOnClickListener(v -> {
-            Foodstuff copiedItem = new Foodstuff(foodstuff.Name, foodstuff.Quantity, foodstuff.PricePerPiece);
-            groceryListItems.add(copiedItem);
+            groceryListItems.add(new Foodstuff(foodstuff.Name, foodstuff.Quantity, foodstuff.PricePerPiece));
             notifyDataSetChanged();
             updateFinishButtonState();
         });
+    }
 
+    private void setDeleteButtonListener(ImageView deleteButton, int position) {
         deleteButton.setOnClickListener(v -> {
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setTitle("Grocery List Item Deletion");
-            builder.setMessage("Are you sure you want to remove the selected item from the list?");
-
-            builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    groceryListItems.remove(position);
-                    notifyDataSetChanged();
-                    updateFinishButtonState();
-                    dialog.dismiss();
-                }
-            });
-
-            builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                }
-            });
-
-            builder.show();
+            new AlertDialog.Builder(context)
+                    .setTitle("Grocery List Item Deletion")
+                    .setMessage("Are you sure you want to remove the selected item from the list?")
+                    .setPositiveButton("Yes", (dialog, which) -> {
+                        groceryListItems.remove(position);
+                        notifyDataSetChanged();
+                        updateFinishButtonState();
+                        dialog.dismiss();
+                    })
+                    .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
+                    .show();
         });
-
-
-        return convertView;
     }
 
     public void setCopyAndDeleteButtonsVisible(boolean visible) {

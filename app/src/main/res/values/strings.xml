@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">GroceryList</string>
+    <string name="item_name">Item</string>
+    <string name="grocery_list_title">Grocery List</string>
+    <string name="name_label">Name: </string>
+    <string name="quantity_label">Quantity: </string>
+    <string name="price_per_piece_label">Price per piece: </string>
+    <string name="add_button">Add</string>
+    <string name="reset_input_fields_button">Reset Input Fields</string>
+    <string name="finish_button">Finish</string>
+    <string name="reset_list_button">Reset List</string>
+    <string name="enter_name_hint">Enter name</string>
+    <string name="quantity_hint">0</string>
+    <string name="price_per_piece_hint">0</string>
+    <string name="name_hint">Enter name</string>
+    <string name="price_hint">0</string>
 </resources>

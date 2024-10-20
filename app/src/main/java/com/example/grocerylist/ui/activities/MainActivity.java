@@ -7,7 +7,6 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -18,17 +17,31 @@ import com.example.grocerylist.ui.adapters.FoodstuffAdapter;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
-    ListView groceryListView;
-    ArrayList<Foodstuff> groceryListItems;
-    FoodstuffAdapter adapter;
-    EditText nameInputField, quantityInputField, pricePerPieceInputField;
-    Button addButton, resetInputFieldsButton, finishButton, resetListButton;
+    private ListView groceryListView;
+    private ArrayList<Foodstuff> groceryListItems;
+    private FoodstuffAdapter adapter;
+    private EditText nameInputField, quantityInputField, pricePerPieceInputField;
+    private Button addButton, resetInputFieldsButton, finishButton, resetListButton;
+
+    private static final String NAME_VALIDATION_ERROR = "Please enter a valid name (letters only).";
+    private static final String FILL_FIELDS_ERROR = "Please fill out all fields.";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        initializeUIElements();
+
+        groceryListItems = new ArrayList<>();
+        adapter = new FoodstuffAdapter(this, groceryListItems, finishButton);
+        groceryListView.setAdapter(adapter);
+
+        updateFinishButtonState();
+        setupListeners();
+    }
+
+    private void initializeUIElements() {
         groceryListView = findViewById(R.id.groceryList);
         nameInputField = findViewById(R.id.nameInputField);
         quantityInputField = findViewById(R.id.quantityInputField);
@@ -37,76 +50,87 @@ public class MainActivity extends AppCompatActivity {
         resetInputFieldsButton = findViewById(R.id.resetInputFieldsButton);
         finishButton = findViewById(R.id.finishButton);
         resetListButton = findViewById(R.id.resetListButton);
+    }
 
-        groceryListItems = new ArrayList<>();
-        adapter = new FoodstuffAdapter(this, groceryListItems, finishButton);
-        groceryListView.setAdapter(adapter);
+    private void setupListeners() {
+        addButton.setOnClickListener(v -> addItemToGroceryList());
+        resetInputFieldsButton.setOnClickListener(v -> clearInputFields());
+        finishButton.setOnClickListener(v -> showTotalPriceDialog());
+        resetListButton.setOnClickListener(v -> resetGroceryList());
+    }
 
+    private void addItemToGroceryList() {
+        String name = nameInputField.getText().toString();
+        String quantityStr = quantityInputField.getText().toString();
+        String priceStr = pricePerPieceInputField.getText().toString();
+
+        if (!isValidName(name)) {
+            showToast(NAME_VALIDATION_ERROR);
+            return;
+        }
+
+        if (name.isEmpty() || quantityStr.isEmpty() || priceStr.isEmpty()) {
+            showToast(FILL_FIELDS_ERROR);
+            return;
+        }
+
+        addItemToAdapter(name, quantityStr, priceStr);
+        clearInputFields();
         updateFinishButtonState();
+    }
 
-        addButton.setOnClickListener(v -> {
-            String name = nameInputField.getText().toString();
-            String quantityStr = quantityInputField.getText().toString();
-            String priceStr = pricePerPieceInputField.getText().toString();
+    private boolean isValidName(String name) {
+        return name.matches("[a-zA-Z\\s]+");
+    }
 
-            if (name.isEmpty() || quantityStr.isEmpty() || priceStr.isEmpty()) {
-                Toast.makeText(MainActivity.this, "Please fill out all fields", Toast.LENGTH_SHORT).show();
-                return;
-            }
+    private void addItemToAdapter(String name, String quantityStr, String priceStr) {
+        int quantity = Integer.parseInt(quantityStr);
+        double pricePerPiece = Double.parseDouble(priceStr);
 
-            int quantity = Integer.parseInt(quantityStr);
-            double pricePerPiece = Double.parseDouble(priceStr);
+        Foodstuff newItem = new Foodstuff(name, quantity, pricePerPiece);
+        groceryListItems.add(newItem);
+        adapter.notifyDataSetChanged();
+    }
 
-            Foodstuff newItem = new Foodstuff(name, quantity, pricePerPiece);
-            groceryListItems.add(newItem);
-            adapter.notifyDataSetChanged();
+    private void clearInputFields() {
+        nameInputField.setText("");
+        quantityInputField.setText("");
+        pricePerPieceInputField.setText("");
+    }
 
-            nameInputField.setText("");
-            quantityInputField.setText("");
-            pricePerPieceInputField.setText("");
+    private void showTotalPriceDialog() {
+        double totalPrice = calculateTotalPrice();
 
-            updateFinishButtonState();
-        });
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle("Total Price");
+        builder.setMessage("The total price of your grocery list is: " + String.format("%.2f", totalPrice) + " RSD");
+        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
+        builder.show();
 
-        resetInputFieldsButton.setOnClickListener(v -> {
-            nameInputField.setText("");
-            quantityInputField.setText("");
-            pricePerPieceInputField.setText("");
-        });
+        disableInputFieldsAndButtons();
+        adapter.setCopyAndDeleteButtonsVisible(false);
+    }
 
-        finishButton.setOnClickListener(v -> {
-            double totalPrice = 0.0;
+    private double calculateTotalPrice() {
+        double totalPrice = 0.0;
+        for (Foodstuff item : groceryListItems) {
+            totalPrice += item.Quantity * item.PricePerPiece;
+        }
+        return totalPrice;
+    }
 
-            for (Foodstuff item : groceryListItems) {
-                totalPrice += item.Quantity * item.PricePerPiece;
-            }
+    private void resetGroceryList() {
+        groceryListItems.clear();
+        adapter.notifyDataSetChanged();
 
-            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-            builder.setTitle("Total Price");
-            builder.setMessage("The total price of your grocery list is: " + String.format("%.2f", totalPrice) + " RSD");
-            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                }
-            });
-            builder.show();
+        clearInputFields();
+        enableInputFieldsAndButtons();
+        adapter.setCopyAndDeleteButtonsVisible(true);
+        updateFinishButtonState();
+    }
 
-            disableInputFieldsAndButtons();
-            adapter.setCopyAndDeleteButtonsVisible(false);
-        });
-
-        resetListButton.setOnClickListener(v -> {
-            groceryListItems.clear();
-            adapter.notifyDataSetChanged();
-
-            nameInputField.setText("");
-            quantityInputField.setText("");
-            pricePerPieceInputField.setText("");
-
-            enableInputFieldsAndButtons();
-            updateFinishButtonState();
-        });
+    private void showToast(String message) {
+        Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
     }
 
     private void updateFinishButtonState() {
@@ -114,21 +138,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void disableInputFieldsAndButtons() {
-        nameInputField.setEnabled(false);
-        quantityInputField.setEnabled(false);
-        pricePerPieceInputField.setEnabled(false);
+        setInputFieldsEnabled(false);
         addButton.setEnabled(false);
         resetInputFieldsButton.setEnabled(false);
         finishButton.setEnabled(false);
     }
 
     private void enableInputFieldsAndButtons() {
-        nameInputField.setEnabled(true);
-        quantityInputField.setEnabled(true);
-        pricePerPieceInputField.setEnabled(true);
+        setInputFieldsEnabled(true);
         addButton.setEnabled(true);
         resetInputFieldsButton.setEnabled(true);
         resetListButton.setEnabled(true);
         updateFinishButtonState();
+    }
+
+    private void setInputFieldsEnabled(boolean isEnabled) {
+        nameInputField.setEnabled(isEnabled);
+        quantityInputField.setEnabled(isEnabled);
+        pricePerPieceInputField.setEnabled(isEnabled);
     }
 }
