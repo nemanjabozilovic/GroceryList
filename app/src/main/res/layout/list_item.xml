@@ -27,4 +27,5 @@
         android:layout_height="wrap_content"
         android:src="@drawable/ic_delete"
         android:contentDescription="@string/item_name" />
+
 </LinearLayout>
